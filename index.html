@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>lottery</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<style type="text/css">
+	body{margin: 0;background: url(images/bodyBg.jpg);}
+	.kePublic{background:#e62d2d; padding:50px;}
+	.banner{display:block;width:95%;margin-left:auto;margin-right:auto;margin-bottom: 20px;}
+	.banner .turnplate{display:block;width:100%;position:relative;}
+	.banner .turnplate canvas.item{width:100%;}
+	.banner .turnplate img.pointer{position:absolute;width:31.5%;height:42.5%;left:34.6%;top:23%;}
+
+</style>
+<body>
+	<div class="kePublic">
+		<div style="max-width:800px;margin:0 auto;">
+			<img src="images/1.png" id="shan-img" style="display:none;"/>
+			<img src="images/2.png" id="sorry-img" style="display:none;"/>
+			<div class="banner">
+				<div class="turnplate" style="background-image:url(images/turnplate-bg.png);background-size:100% 100%;">
+					<canvas class="item" id="wheelcanvas" width="422px" height="422px"></canvas>
+					<img class="pointer" src="images/turnplate-pointer.png"/>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+<script type="text/javascript" src="js/jquery-1.10.2.js"></script>
+<script type="text/javascript" src="js/awardRotate.js"></script>
+<script type="text/javascript">
+var turnplate = {
+	restaraunts: [],
+	colors: [],
+	outsideRasius: 192,
+	textRadius: 155,
+	insideRadius: 68,
+	startAngle: 0,
+	bRotate: false
+}
+
+$(document).ready(function() {
+
+	turnplate.restaraunts = ["50M免费流量包", "10闪币", "谢谢参与", "5闪币", "10M免费流量包", "20M免费流量包", "20闪币 ", "30M免费流量包", "100M免费流量包", "2闪币"];
+	turnplate.colors = ["#FFF4D6", "#FFFFFF", "#FFF4D6", "#FFFFFF","#FFF4D6", "#FFFFFF", "#FFF4D6", "#FFFFFF","#FFF4D6", "#FFFFFF"];
+
+	var rotatetimeOut = function() {
+		$("#wheelcanvas").rotate({
+			angle: 0,
+			animateTo: 2160,
+			duration: 5000,
+			callback: function() {
+				alert("网络延时，请稍后再试!");
+			}
+		});
+	};
+
+	var rotateFn = function(item, txt) {
+		var angles = item * (360 / turnplate.restaraunts.length) - (360 / (turnplate.restaraunts.length*2));
+		console.log(angles);
+		if(angles<270){
+			angles = 270 - angles; 
+		}else{
+			angles = 360 - angles + 270;
+		}
+		$('#wheelcanvas').stopRotate();
+		$('#wheelcanvas').rotate({
+			angle:0,
+			animateTo:angles+1800,
+			duration:8000,
+			callback:function (){
+				alert(txt);
+				turnplate.bRotate = !turnplate.bRotate;
+			}
+		});
+	}
+
+	$(".pointer").on("click", function() {
+		if(turnplate.bRotate) return;
+		turnplate.bRotate = !turnplate.bRotate;
+		var item = rnd(1, turnplate.restaraunts.length);
+		rotateFn(item, turnplate.restaraunts[item - 1]);
+	});
+
+});
+
+function rnd(n, m) {
+	var random = Math.floor(Math.random()*(m-n+1)+n);
+	return random;
+}
+
+window.onload = function() {
+	drawRouletteWheel();
+}
+
+function drawRouletteWheel() {
+	var canvas = document.getElementById("wheelcanvas");
+	if(canvas.getContext) {
+		var arc = Math.PI / (turnplate.restaraunts.length / 2);
+		var ctx = canvas.getContext("2d");
+
+		ctx.clearRect(0, 0, 422, 422);
+		ctx.strokeStyle = "#FFBE04";
+		ctx.font = "16px Microsoft YaHei";
+
+		for(var i = 0; i < turnplate.restaraunts.length; i++) {
+			var angle = turnplate.startAngle + i*arc;
+			ctx.fillStyle = turnplate.colors[i];
+			ctx.beginPath();
+			ctx.arc(211, 211, turnplate.outsideRasius, angle, angle + arc, false);
+			ctx.arc(211, 211, turnplate.insideRadius, angle + arc, angle, true);
+			ctx.stroke();
+			ctx.fill();
+			ctx.save();
+
+			//绘制奖品
+			ctx.fillStyle = "#E5302F";
+			var text = turnplate.restaraunts[i];
+			var line_height = 17;
+			ctx.translate(211 + Math.cos(angle + arc/2)*turnplate.textRadius, 211 + Math.sin(angle + arc/2)*turnplate.textRadius);
+
+			ctx.rotate(angle + arc/2 + Math.PI/2);
+
+			if(text.indexOf("M") > 0 ) {
+				var texts = text.split("M");
+				for(var j = 0; j < texts.length; j++) {
+					ctx.font = j == 0?'bold 20px Microsoft YaHei':'16px Microsoft YaHei';
+					if(j == 0) {
+						ctx.fillText(texts[j]+"M", -ctx.measureText(texts[j]+"M").width/2, j*line_height );
+					} else {
+						ctx.fillText(texts[j], -ctx.measureText(texts[j]).width / 2, j * line_height);
+					}
+				}
+			} else if(text.indexOf("M") == -1 && text.length > 6) {
+				text = text.substring(0, 6) + "||" + text.substring(6);
+				var texts = text.split("||");
+				for(var j = 0; j < texts.length; j++) {
+					ctx.fillText(texts[j], -ctx.measureText(texts[j]).width/2, j*line_height);
+				}
+			} else {
+				ctx.fillText(text, -ctx.measureText(text).width/2, 0);
+			}
+
+			//添加图标
+			if(text.indexOf("闪币") > 0) {
+				var img = document.getElementById("shan-img");
+				img.onload = function() {
+					ctx.drawImage(img, -15, 10);
+				}
+				ctx.drawImage(img, -15, 10);
+			} else if(text.indexOf("谢谢参与") >= 0) {
+				var img = document.getElementById("sorry-img");
+				img.onload = function() {
+					ctx.drawImage(img, -15, 10);
+				}
+				ctx.drawImage(img, -15, 10);
+			}
+
+			ctx.restore();
+		}
+	}
+}
+</script>
+</html>
